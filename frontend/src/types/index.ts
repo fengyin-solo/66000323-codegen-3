@@ -45,3 +45,32 @@ export interface MoleculeData {
   atoms: Atom3D[]
   bonds: Bond3D[]
 }
+
+export interface StructureFeatures {
+  atomCount: number
+  heavyAtomCount: number
+  bondCount: number
+  doubleBondCount: number
+  tripleBondCount: number
+  aromaticAtomCount: number
+  ringCount: number
+  halogenCount: number
+  heteroAtomCount: number
+  hbd: number
+  hba: number
+  elementComposition: Record<string, number>
+}
+
+export interface CompareEntry {
+  molecule: MoleculeData
+  structure: StructureFeatures
+  admet: ADMETProps
+}
+
+export interface SimilarityCell {
+  rowId: number
+  colId: number
+  rowName: string
+  colName: string
+  value: number
+}

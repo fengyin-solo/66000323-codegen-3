@@ -15,6 +15,7 @@
         <AdmetPanel />
       </div>
     </div>
+    <MoleculeCompare />
   </div>
 </template>
 
@@ -24,6 +25,7 @@ import { useMoleculeStore } from './store/molecule'
 import MoleculeViewer from './components/MoleculeViewer.vue'
 import AdmetPanel from './components/AdmetPanel.vue'
 import MoleculeSearch from './components/MoleculeSearch.vue'
+import MoleculeCompare from './components/MoleculeCompare.vue'
 
 const store = useMoleculeStore()
 onMounted(() => store.loadMolecules())
