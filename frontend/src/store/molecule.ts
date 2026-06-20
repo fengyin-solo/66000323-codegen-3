@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { MoleculeData, ADMETProps } from '../types'
+import { computeMolecularTanimoto } from './compare'
+
 
 const ATOM_COLORS: Record<string, string> = {
   C: '#6b7280', N: '#3b82f6', O: '#ef4444', S: '#eab308',
@@ -17,6 +19,7 @@ function parseSMILES(smiles: string): { atoms: any[]; bonds: any[] } {
   const atoms: any[] = []
   const bonds: any[] = []
   const stack: number[] = []
+  const ringStarts: Record<string, number> = {}
   let lastAtom = -1
   let pendingBond = 1
   let i = 0
@@ -24,7 +27,7 @@ function parseSMILES(smiles: string): { atoms: any[]; bonds: any[] } {
   while (i < smiles.length) {
     const ch = smiles[i]
     if (ch === '(') { stack.push(lastAtom) }
-    else if (ch === ')') { stack.pop() }
+    else if (ch === ')') { last = stack.pop() }
     else if (ch === '[') {
       let el = ''
       i++
@@ -38,6 +41,21 @@ function parseSMILES(smiles: string): { atoms: any[]; bonds: any[] } {
     else if (ch === '=') { pendingBond = 2 }
     else if (ch === '#') { pendingBond = 3 }
     else if (ch === '-') { pendingBond = 1 }
+    else if (/\d/.test(ch)) {
+      if (ringStarts[ch] !== undefined) {
+        bonds.push({ atom1: lastAtom, atom2: ringStarts[ch], order: pendingBond })
+      } else {
+        ringStarts[ch] = lastAtom
+      }
+      pendingBond = 1
+    }
+    else if (/[cnosp]/.test(ch)) {
+      const element = ch.toUpperCase()
+      atoms.push({ element, x: (atoms.length % 3 - 1) * 1.5 + Math.random() * 0.5, y: (Math.floor(atoms.length / 3) % 3 - 1) * 1.5 + Math.random() * 0.5, z: (Math.floor(atoms.length / 9) - 1) * 1.5 + Math.random() * 0.5, color: ATOM_COLORS[element] || "#888", radius: ATOM_RADII[element] || 0.25 })
+      if (lastAtom >= 0) bonds.push({ atom1: lastAtom, atom2: atoms.length - 1, order: pendingBond })
+      lastAtom = atoms.length - 1
+      pendingBond = 1
+    }
     else if (/[A-Z]/.test(ch)) {
       let element = ch
       if (i + 1 < smiles.length && /[a-z]/.test(smiles[i + 1])) { element += smiles[i + 1]; i++ }
@@ -141,7 +159,7 @@ export const useMoleculeStore = defineStore('molecule', () => {
   const similarMolecules = computed(() => {
     if (!currentMolecule.value) return []
     return molecules.value
-      .map(m => ({ ...m, similarity: computeTanimoto(currentMolecule.value!.smiles, m.smiles) }))
+      .map(m => ({ ...m, similarity: computeMolecularTanimoto(currentMolecule.value!, m) }))
       .filter(m => m.id !== currentMolecule.value!.id)
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5)
